@@ -4,48 +4,87 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
 <title>分箱掃描</title>
 
 <style>
 
+*{
+box-sizing:border-box;
+}
+
 body{
 font-family:Arial;
 background:#f2f2f2;
-padding:20px;
+margin:0;
+padding:10px;
 }
 
 .container{
-max-width:600px;
+width:100%;
+max-width:500px;
 margin:auto;
 background:white;
-padding:20px;
-border-radius:10px;
+padding:15px;
+border-radius:12px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
+}
+
+h2{
+text-align:center;
+font-size:24px;
+margin:10px 0 20px 0;
+}
+
+.box{
+font-size:22px;
+color:#007BFF;
+text-align:center;
+margin-bottom:15px;
+font-weight:bold;
 }
 
 input{
 width:100%;
-padding:15px;
-font-size:20px;
+padding:18px;
+font-size:22px;
 margin:10px 0;
 text-align:center;
+border-radius:8px;
+border:1px solid #ccc;
 }
 
-.box{
-font-size:24px;
-color:#007BFF;
-text-align:center;
-margin:10px;
+input:focus{
+outline:none;
+border:2px solid #007BFF;
 }
 
 .log{
 font-size:14px;
-margin-top:10px;
-height:120px;
+margin-top:15px;
+height:150px;
 overflow:auto;
 background:#f7f7f7;
 padding:10px;
+border-radius:8px;
+}
+
+@media (max-width:480px){
+
+h2{
+font-size:22px;
+}
+
+.box{
+font-size:20px;
+}
+
+input{
+font-size:24px;
+padding:20px;
+}
+
 }
 
 </style>
@@ -56,7 +95,7 @@ padding:10px;
 
 <div class="container">
 
-<h2 style="text-align:center">📦 分箱掃描</h2>
+<h2>📦 分箱掃描</h2>
 
 <div class="box">
 目前箱號：<span id="box">未設定</span>
