@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>分箱掃描</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+padding:20px;
+}
+
+.container{
+max-width:600px;
+margin:auto;
+background:white;
+padding:20px;
+border-radius:10px;
+}
+
+input{
+width:100%;
+padding:15px;
+font-size:20px;
+margin:10px 0;
+text-align:center;
+}
+
+.box{
+font-size:24px;
+color:#007BFF;
+text-align:center;
+margin:10px;
+}
+
+.log{
+font-size:14px;
+margin-top:10px;
+height:120px;
+overflow:auto;
+background:#f7f7f7;
+padding:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2 style="text-align:center">📦 分箱掃描</h2>
+
+<div class="box">
+目前箱號：<span id="box">未設定</span>
+</div>
+
+<input id="scan" placeholder="掃描箱號或條碼">
+
+<div class="log" id="log"></div>
+
+</div>
+
+<script>
+
+const API="https://script.google.com/macros/s/AKfycbysljEGL77jIV4HQ5-X-SsjoTLDbePk2E4KWfe9_NHcvDayjy04hTx_lKujWDJxUUA1/exec"
+
+let currentBox=""
+let buffer=[]
+
+document.getElementById("scan")
+.addEventListener("keypress",function(e){
+
+if(e.key==="Enter"){
+
+let code=this.value.trim()
+this.value=""
+
+if(code.startsWith("DECK-") || code.startsWith("ENG-")){
+
+currentBox=code
+document.getElementById("box").innerText=currentBox
+
+log("切換箱號 "+code)
+
+return
+}
+
+if(!currentBox){
+alert("請先掃描箱號")
+return
+}
+
+buffer.push({
+barcode:code,
+box:currentBox
+})
+
+log("掃描 "+code)
+
+if(buffer.length>=5){
+send()
+}
+
+}
+
+})
+
+setInterval(function(){
+
+if(buffer.length>0){
+send()
+}
+
+},2000)
+
+async function send(){
+
+let data=[...buffer]
+
+buffer=[]
+
+await fetch(API,{
+method:"POST",
+body:JSON.stringify(data)
+})
+
+}
+
+function log(t){
+
+let div=document.getElementById("log")
+
+div.innerHTML=t+"<br>"+div.innerHTML
+
+}
+
+</script>
+
+</body>
+
+</html>
