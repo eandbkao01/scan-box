@@ -33,7 +33,6 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 
 h2{
 text-align:center;
-font-size:24px;
 margin:10px 0 20px 0;
 }
 
@@ -41,50 +40,42 @@ margin:10px 0 20px 0;
 font-size:22px;
 color:#007BFF;
 text-align:center;
-margin-bottom:15px;
 font-weight:bold;
 }
 
+.count{
+text-align:center;
+font-size:18px;
+margin-top:5px;
+}
+
+.net{
+text-align:center;
+font-size:14px;
+margin:8px;
+}
+
+.online{color:green}
+.offline{color:red}
+
 input{
 width:100%;
-padding:18px;
-font-size:22px;
-margin:10px 0;
+padding:20px;
+font-size:24px;
+margin-top:10px;
 text-align:center;
 border-radius:8px;
 border:1px solid #ccc;
 }
 
-input:focus{
-outline:none;
-border:2px solid #007BFF;
-}
-
 .log{
-font-size:14px;
-margin-top:15px;
-height:150px;
+font-size:13px;
+margin-top:10px;
+height:120px;
 overflow:auto;
 background:#f7f7f7;
 padding:10px;
 border-radius:8px;
-}
-
-@media (max-width:480px){
-
-h2{
-font-size:22px;
-}
-
-.box{
-font-size:20px;
-}
-
-input{
-font-size:24px;
-padding:20px;
-}
-
 }
 
 </style>
@@ -101,46 +92,153 @@ padding:20px;
 目前箱號：<span id="box">未設定</span>
 </div>
 
+<div class="count">
+📦 本箱數量：<span id="boxCount">0</span>
+</div>
+
+<div class="count">
+📦 總掃描數：<span id="totalCount">0</span>
+</div>
+
+<div class="net">
+📶 網路：<span id="net" class="online">在線</span>
+</div>
+
 <input id="scan" placeholder="掃描箱號或條碼">
 
 <div class="log" id="log"></div>
 
 </div>
 
+<audio id="okSound" src="beep.mp3"></audio>
+<audio id="errorSound" src="error.mp3"></audio>
+<audio id="boxSound" src="box.mp3"></audio>
+
 <script>
 
-const API="https://script.google.com/macros/s/AKfycbysljEGL77jIV4HQ5-X-SsjoTLDbePk2E4KWfe9_NHcvDayjy04hTx_lKujWDJxUUA1/exec"
+const API="https://script.google.com/macros/s/AKfycbzKP3cCH2WN1lQW27-UotFqNSa5WGq-V3ADSPu8Jc4Uo3suVQpEUdf0a49YkGwfxq9hqg/exec"
 
 let currentBox=""
 let buffer=[]
+let scannedSet=new Set()
 
-document.getElementById("scan")
-.addEventListener("keypress",function(e){
+let totalCount=0
+let boxCount=0
+
+const scanInput=document.getElementById("scan")
+
+scanInput.focus()
+
+// 音效
+function play(id){
+
+let s=document.getElementById(id)
+
+s.pause()
+s.currentTime=0
+s.play()
+
+}
+
+// log
+function log(t){
+
+let div=document.getElementById("log")
+
+div.innerHTML=t+"<br>"+div.innerHTML
+
+}
+
+// 更新數量
+function updateCount(){
+
+document.getElementById("totalCount").innerText=totalCount
+document.getElementById("boxCount").innerText=boxCount
+
+}
+
+// 網路狀態
+function updateNet(){
+
+if(navigator.onLine){
+
+net.innerText="在線"
+net.className="online"
+
+}else{
+
+net.innerText="離線"
+net.className="offline"
+
+}
+
+}
+
+window.addEventListener("online",sendOffline)
+window.addEventListener("offline",updateNet)
+
+updateNet()
+
+// 掃描
+scanInput.addEventListener("keypress",function(e){
 
 if(e.key==="Enter"){
 
 let code=this.value.trim()
+
 this.value=""
 
 if(code.startsWith("DECK-") || code.startsWith("ENG-")){
 
 currentBox=code
+
 document.getElementById("box").innerText=currentBox
+
+boxCount=0
+
+updateCount()
+
+play("boxSound")
 
 log("切換箱號 "+code)
 
 return
+
 }
 
 if(!currentBox){
+
 alert("請先掃描箱號")
+
+play("errorSound")
+
 return
+
 }
+
+if(scannedSet.has(code)){
+
+log("重複條碼 "+code)
+
+play("errorSound")
+
+return
+
+}
+
+scannedSet.add(code)
 
 buffer.push({
 barcode:code,
 box:currentBox
 })
+
+totalCount++
+boxCount++
+
+updateCount()
+
+play("okSound")
 
 log("掃描 "+code)
 
@@ -152,6 +250,7 @@ send()
 
 })
 
+// 定時送出
 setInterval(function(){
 
 if(buffer.length>0){
@@ -160,26 +259,67 @@ send()
 
 },2000)
 
+// 傳送
 async function send(){
 
 let data=[...buffer]
 
 buffer=[]
 
+try{
+
 await fetch(API,{
 method:"POST",
 body:JSON.stringify(data)
 })
 
-}
+}catch(e){
 
-function log(t){
-
-let div=document.getElementById("log")
-
-div.innerHTML=t+"<br>"+div.innerHTML
+saveOffline(data)
 
 }
+
+}
+
+// 離線儲存
+function saveOffline(data){
+
+let old=JSON.parse(localStorage.getItem("offline")||"[]")
+
+old=old.concat(data)
+
+localStorage.setItem("offline",JSON.stringify(old))
+
+}
+
+// 補傳
+async function sendOffline(){
+
+let data=JSON.parse(localStorage.getItem("offline")||"[]")
+
+if(data.length===0)return
+
+try{
+
+await fetch(API,{
+method:"POST",
+body:JSON.stringify(data)
+})
+
+localStorage.removeItem("offline")
+
+log("離線資料補傳完成")
+
+}catch(e){
+
+}
+
+}
+
+// 保持焦點
+setInterval(function(){
+scanInput.focus()
+},500)
 
 </script>
 
