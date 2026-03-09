@@ -61,7 +61,7 @@ margin:2px;
 
 input{
 width:100%;
-padding:18px;
+padding:20px;
 font-size:24px;
 margin:10px 0;
 text-align:center;
@@ -129,10 +129,14 @@ const API="https://script.google.com/macros/s/AKfycbzKP3cCH2WN1lQW27-UotFqNSa5WG
 
 let currentBox=""
 let buffer=[]
+
 let totalCount=0
 let boxCount=0
 
-// 載入離線資料
+// 防止重複條碼
+let scannedSet=new Set()
+
+// 離線資料
 let offline=JSON.parse(localStorage.getItem("offline")||"[]")
 
 document.getElementById("scan").focus()
@@ -149,11 +153,12 @@ if(code.startsWith("DECK-") || code.startsWith("ENG-")){
 
 currentBox=code
 boxCount=0
+scannedSet.clear()
 
 document.getElementById("box").innerText=currentBox
-document.getElementById("boxcount").innerText=boxCount
+document.getElementById("boxcount").innerText=0
 
-log("切換箱號 "+code)
+log("📦 切換箱號 "+code)
 
 return
 }
@@ -162,6 +167,16 @@ if(!currentBox){
 alert("請先掃描箱號")
 return
 }
+
+// 防重複
+if(scannedSet.has(code)){
+
+log("⚠ 重複條碼 "+code)
+
+return
+}
+
+scannedSet.add(code)
 
 buffer.push({
 barcode:code,
@@ -173,7 +188,7 @@ boxCount++
 
 updateStats()
 
-log("掃描 "+code)
+log("✔ 掃描 "+code)
 
 if(buffer.length>=5){
 send()
@@ -220,7 +235,7 @@ localStorage.setItem("offline",JSON.stringify(offline))
 
 document.getElementById("net").innerText="OFFLINE"
 
-log("⚠離線暫存 "+data.length)
+log("⚠ 離線暫存 "+data.length)
 
 }
 
@@ -238,7 +253,7 @@ method:"POST",
 body:JSON.stringify(offline)
 })
 
-log("📶補傳 "+offline.length)
+log("📶 補傳 "+offline.length)
 
 offline=[]
 localStorage.removeItem("offline")
